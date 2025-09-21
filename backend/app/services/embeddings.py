@@ -1,69 +1,69 @@
-from typing import List, Dict, Any
-import logging
+import numpy as np
+import os
+import asyncio
+from typing import List
+from openai import AsyncOpenAI, OpenAIError
+import httpx
+ 
+_async_client = None
 
-logger = logging.getLogger(__name__)
+def get_openrouter_client():
+    """
+    Returns a singleton async OpenAI client configured for OpenRouter.
+    This lazy initialization prevents the app from crashing on startup if
+    the OPENROUTER_API_KEY is not set.
+    """
+    global _async_client
+    if _async_client is None:
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise OpenAIError(
+                "The OPENROUTER_API_KEY environment variable is not set. "
+                "Please provide the key to use AI-powered features."
+            )
+        
+        # Configure the client to use OpenRouter's API
+        _async_client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+            # Add recommended headers for OpenRouter
+            default_headers={
+                "HTTP-Referer": "http://localhost:10000", # Can be your app's URL
+                "X-Title": "CodeMind Lite"
+            },
+            http_client=httpx.AsyncClient(
+                http2=True, # Recommended for performance
+            ),
+        )
+    return _async_client
 
-class EmbeddingService:
-    """Service for handling code embeddings and similarity search"""
+async def get_embeddings_async(texts: List[str]) -> List[np.ndarray]:
+    """
+    Asynchronously gets embeddings for a list of texts using an OpenRouter model,
+    handling rate limiting by processing in smaller batches with delays.
+    """
+    if not texts:
+        return []
     
-    def __init__(self):
-        # TODO: Initialize embedding model (sentence-transformers or OpenAI)
-        pass
+    client = get_openrouter_client()
     
-    async def chunk_repository(self, repo_files: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Split repository files into chunks for embedding"""
-        chunks = []
+    all_embeddings = []
+    # Process in batches to respect rate limits.
+    batch_size = 100
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
         
-        for file_info in repo_files:
-            content = file_info['content']
-            lines = content.split('\n')
-            
-            # Simple chunking by functions/classes
-            current_chunk = []
-            chunk_start_line = 0
-            
-            for i, line in enumerate(lines):
-                current_chunk.append(line)
-                
-                # End chunk at function/class definitions or file end
-                if (line.strip().startswith('def ') or 
-                    line.strip().startswith('class ') or 
-                    i == len(lines) - 1):
-                    
-                    if len(current_chunk) > 5:  # Only keep meaningful chunks
-                        chunks.append({
-                            'file': file_info['path'],
-                            'content': '\n'.join(current_chunk),
-                            'start_line': chunk_start_line,
-                            'end_line': i
-                        })
-                    
-                    current_chunk = []
-                    chunk_start_line = i + 1
+        # Use a model available on OpenRouter, e.g., text-embedding-3-small
+        resp = await client.embeddings.create(
+            model="text-embedding-3-small", 
+            input=batch
+        )
+        all_embeddings.extend([np.array(data.embedding) for data in resp.data])
         
-        return chunks
-    
-    async def find_relevant_chunks(self, chunks: List[Dict[str, Any]], query: str, top_k: int = 3) -> List[Dict[str, Any]]:
-        """Find most relevant code chunks for a query"""
-        # TODO: Implement actual embedding-based similarity search
-        # For now, return simple keyword matching
-        
-        relevant_chunks = []
-        query_lower = query.lower()
-        
-        for chunk in chunks:
-            content_lower = chunk['content'].lower()
-            score = 0
-            
-            # Simple keyword matching
-            for word in query_lower.split():
-                if word in content_lower:
-                    score += content_lower.count(word)
-            
-            if score > 0:
-                chunk['relevance_score'] = score
-                relevant_chunks.append(chunk)
-        
-        # Sort by relevance and return top_k
-        relevant_chunks.sort(key=lambda x: x['relevance_score'], reverse=True)
-        return relevant_chunks[:top_k]
+        # If there are more batches to process, wait a bit to avoid hitting RPM limits.
+        if i + batch_size < len(texts):
+            await asyncio.sleep(1)  # Wait 1 second between batches
+    return all_embeddings
+
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))

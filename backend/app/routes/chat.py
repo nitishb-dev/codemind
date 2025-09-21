@@ -1,29 +1,28 @@
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import ChatRequest, ChatResponse
 from app.routes.upload import repositories
-from app.services.ai_service import generate_ai_response
-import logging
+from app.services.ai_service import ask_ai, generate_repo_chunks
+from app.models.schemas import ChatRequest
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_with_repository(request: ChatRequest):
-    """Chat with the uploaded repository using AI"""
+# Store embeddings per repo
+repo_chunks_store = {}
+
+@router.post("/")
+async def chat_repo(request: ChatRequest):
+    repo_id = request.repo_id
+    question = request.message
     
-    if request.repo_id not in repositories:
+    if repo_id not in repositories:
         raise HTTPException(status_code=404, detail="Repository not found")
     
-    repo = repositories[request.repo_id]
+    if not question:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
     
-    try:
-        # Generate AI response
-        response_message = await generate_ai_response(repo, request.message)
-        
-        return ChatResponse(
-            message=response_message,
-            relevant_files=[f['path'] for f in repo['files'][:3]]
-        )
-    except Exception as e:
-        logger.error(f"Chat request failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Chat request failed: {str(e)}")
+    # Generate embeddings for repo if not already done
+    if repo_id not in repo_chunks_store:
+        repo_chunks_store[repo_id] = await generate_repo_chunks(repositories[repo_id].files)
+    
+    repo_chunks = repo_chunks_store[repo_id]
+    answer = await ask_ai(question, repo_chunks)
+    return {"message": answer}

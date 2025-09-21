@@ -1,55 +1,57 @@
-import os
-import tempfile
-import zipfile
-from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.models.schemas import Repository
-from app.services.utils import extract_python_files
-import logging
+from fastapi import APIRouter, UploadFile, HTTPException
+import os, zipfile, uuid, tempfile, shutil
+from app.models.schemas import Repository, RepositoryData
+from typing import Dict
+from datetime import datetime
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
+repositories: Dict[str, RepositoryData] = {}  # Temporary in-memory store
 
-# In-memory storage (use database in production)
-repositories = {}
-
-@router.post("/upload", response_model=Repository)
-async def upload_repository(file: UploadFile = File(...)):
-    """Upload and process a Python repository ZIP file"""
+@router.post("/", response_model=Repository)
+async def upload_repo(file: UploadFile):
+    if not file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Only ZIP files are allowed.")
     
-    if not file.filename.endswith('.zip'):
-        raise HTTPException(status_code=400, detail="Only ZIP files are allowed")
-    
-    # Create temporary directory
-    temp_dir = tempfile.mkdtemp()
-    repo_id = f"repo_{len(repositories) + 1}"
-    
+    temp_dir = tempfile.mkdtemp(prefix="codemind_")
     try:
-        # Save uploaded file
         zip_path = os.path.join(temp_dir, file.filename)
         with open(zip_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+            shutil.copyfileobj(file.file, buffer)
         
-        # Extract and process Python files
-        python_files = await extract_python_files(zip_path, temp_dir)
+        # Extract to a sub-directory
+        extract_path = os.path.join(temp_dir, "extracted")
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(extract_path)
         
-        # Store repository data
-        repositories[repo_id] = {
-            'name': file.filename.replace('.zip', ''),
-            'files': python_files,
-            'temp_dir': temp_dir,
-            'uploaded_at': '2024-01-01T00:00:00Z',  # Use proper timestamp
-            'file_count': len(python_files)
-        }
+        # Collect .py files
+        files = []
+        for root, _, filenames in os.walk(extract_path):
+            for fname in filenames:
+                if fname.endswith(".py"):
+                    full_path = os.path.join(root, fname)
+                    path = os.path.relpath(full_path, extract_path)
+                    try:
+                        with open(full_path, "r", encoding="utf-8", errors="ignore") as f_content:
+                            content = f_content.read()
+                        files.append({"path": path, "content": content})
+                    except Exception:
+                        continue # Skip files that can't be read
         
-        return Repository(
+        if not files:
+            raise HTTPException(status_code=400, detail="No readable Python (.py) files found in the ZIP archive.")
+
+        repo_id = str(uuid.uuid4())
+        repo_data = RepositoryData(
             id=repo_id,
-            name=repositories[repo_id]['name'],
-            uploaded_at=repositories[repo_id]['uploaded_at'],
-            file_count=repositories[repo_id]['file_count']
+            name=file.filename.replace(".zip", ""),
+            file_count=len(files),
+            files=files,
+            uploaded_at=datetime.utcnow()
         )
+        repositories[repo_id] = repo_data
         
-    except Exception as e:
-        logger.error(f"Upload failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        # Return only the metadata, not the full file content
+        return Repository.model_validate(repo_data.model_dump())
+    finally:
+        # Clean up the temporary directory
+        shutil.rmtree(temp_dir)

@@ -1,11 +1,11 @@
 # CodeMind Lite - Backend
 
-FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endpoints for repository upload, AI-powered documentation generation, and intelligent code chat.
+FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endpoints for repository upload, documentation generation, and intelligent code chat powered by the OpenRouter API.
 
 ## ✨ Features
 
 - **Repository Upload**: Process Python repository ZIP files
-- **AI Documentation**: Generate comprehensive documentation using AI
+- **AI Documentation**: Generate comprehensive documentation
 - **Intelligent Chat**: Natural language queries about uploaded code
 - **Code Analysis**: Extract and analyze Python files
 - **Health Monitoring**: Health check endpoint for deployment
@@ -17,29 +17,33 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endp
 
 - Python 3.11+
 - pip or poetry
-- OpenAI API key (optional, for advanced AI features)
+- OpenRouter API key (optional, for AI features)
 
 ### Installation
 
 1. **Clone and install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 2. **Configure environment:**
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Edit `.env` and set your configuration:
+
    ```env
-   OPENAI_API_KEY=your_openai_api_key_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
    HOST=0.0.0.0
    PORT=10000
    DEBUG=False
    ```
 
 3. **Start development server:**
+
    ```bash
    uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
    ```
@@ -59,7 +63,7 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endp
    - Build Command: `pip install -r requirements.txt`
    - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port 10000`
 4. **Set environment variables**:
-   - `OPENAI_API_KEY`: Your OpenAI API key (optional)
+   - `OPENROUTER_API_KEY`: Your OpenRouter API key (optional)
 5. **Deploy**: Click "Create Web Service"
 
 ### Alternative: Manual Deployment
@@ -69,7 +73,7 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endp
 pip install -r requirements.txt
 
 # Set environment variables
-export OPENAI_API_KEY="your_api_key_here"
+export OPENROUTER_API_KEY="your_api_key_here"
 
 # Run the server
 uvicorn app.main:app --host 0.0.0.0 --port 10000
@@ -97,12 +101,12 @@ app/
 
 ### Core Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check for deployment |
-| `POST` | `/upload` | Upload Python repository ZIP |
-| `POST` | `/generate_docs` | Generate AI documentation |
-| `POST` | `/chat` | Chat with uploaded repository |
+| Method | Endpoint         | Description                   |
+| ------ | ---------------- | ----------------------------- |
+| `GET`  | `/health`        | Health check for deployment   |
+| `POST` | `/upload`        | Upload Python repository ZIP  |
+| `POST` | `/generate_docs` | Generate AI documentation     |
+| `POST` | `/chat`          | Chat with uploaded repository |
 
 ### Upload Repository
 
@@ -112,11 +116,12 @@ curl -X POST http://localhost:10000/upload \
 ```
 
 Response:
+
 ```json
 {
-  "id": "repo_1",
+  "id": "c2f9e5c5-6c1a-4b8a-8f3b-2d3e4c5a6b7d",
   "name": "sample_repo",
-  "uploaded_at": "2024-01-01T00:00:00Z",
+  "uploaded_at": "2024-07-23T10:30:00.123Z",
   "file_count": 5
 }
 ```
@@ -133,59 +138,52 @@ curl -X POST http://localhost:10000/chat \
 ```
 
 Response:
+
 ```json
 {
-  "message": "I found main.py in your repository. It contains 150 words of code. This appears to be the main entry point of your application.",
-  "relevant_files": ["main.py", "utils.py", "config.py"]
+  "message": "The main.py file appears to be the primary entry point for a FastAPI application..."
 }
 ```
 
-## 🧠 AI Integration
+## 🧠 Google Gemini Integration
 
 ### Current Implementation
 
-The backend includes a basic AI service that provides:
-- Simple keyword-based responses
-- File structure analysis
-- Function counting and detection
-- Dependency identification
+The backend uses the Google Gemini API to provide:
 
-### OpenAI Integration (Optional)
+- **Semantic Search**: Code chunks are converted to vector embeddings using `models/embedding-001` to find the most relevant context for a user's question.
+- **AI-Powered Chat**: The `gemini-1.5-flash` model is used to generate intelligent answers based on the retrieved code context.
 
-To enable advanced AI features:
+### Enabling AI Features
 
-1. **Set OpenAI API key** in environment variables
-2. **Implement OpenAI service** in `ai_service.py`:
+To enable the AI-powered features, you must provide a Google Gemini API key.
+
+1.  **Get an API key** from Google AI Studio.
+2.  **Set the `GEMINI_API_KEY`** in your `.env` file.
+
+The services in `ai_service.py` and `embeddings.py` are already configured to use this key.
 
 ```python
-import openai
+# Example of how the AI service works (from ai_service.py)
+import google.generativeai as genai
 
-async def generate_openai_response(context: str, question: str) -> str:
-    client = openai.Client(api_key=os.getenv("OPENAI_API_KEY"))
-    
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a helpful AI assistant analyzing Python code."},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"}
-        ],
-        max_tokens=1000
-    )
-    
-    return response.choices[0].message.content
+async def generate_gemini_response(context: str, question: str) -> str:
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    prompt = f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
+    response = await model.generate_content_async(prompt)
+    return response.text
 ```
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key for advanced AI features | None |
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `10000` |
-| `DEBUG` | Debug mode | `False` |
-| `MAX_UPLOAD_SIZE` | Maximum upload size in bytes | `52428800` (50MB) |
+| Variable         | Description                           | Default   |
+| ---------------- | ------------------------------------- | --------- |
+| `GEMINI_API_KEY` | Google Gemini API key for AI features | None      |
+| `HOST`           | Server host                           | `0.0.0.0` |
+| `PORT`           | Server port                           | `10000`   |
+| `DEBUG`          | Debug mode                            | `False`   |
 
 ### File Upload Limits
 
@@ -224,13 +222,22 @@ curl -X POST http://localhost:10000/upload \
 
 ### Common Issues
 
-1. **Port already in use**
-   ```bash
-   # Kill process on port 10000
-   lsof -ti:10000 | xargs kill -9
-   ```
+1.  **`429 ResourceExhausted` (Quota Exceeded) Error**
+
+    When using the chat feature, you might encounter a `429 ResourceExhausted` error from the Google Gemini API. This means you have exceeded the free tier's rate limits for embedding requests.
+
+    - **Recommended Solution**: The most reliable fix is to enable billing on your Google Cloud project. This will grant you significantly higher usage limits.
+    - **Workaround**: The application attempts to mitigate this by batching requests with delays, but the daily free-tier limit can still be reached with large repositories.
+
+2.  **Port already in use**
+
+```bash
+# Kill process on port 10000
+lsof -ti:10000 | xargs kill -9
+```
 
 2. **Module import errors**
+
    ```bash
    # Ensure you're in the correct directory
    cd backend
@@ -238,6 +245,7 @@ curl -X POST http://localhost:10000/upload \
    ```
 
 3. **File upload fails**
+
    - Check file size (max 50MB)
    - Ensure file is a valid ZIP
    - Verify ZIP contains Python files
@@ -249,18 +257,21 @@ curl -X POST http://localhost:10000/upload \
 ## 📦 Production Considerations
 
 ### Security
+
 - [ ] Add authentication and authorization
 - [ ] Implement rate limiting
 - [ ] Validate file contents thoroughly
 - [ ] Use secure file storage (not /tmp)
 
 ### Performance
+
 - [ ] Add database for repository storage
 - [ ] Implement caching for AI responses
 - [ ] Use background tasks for processing
 - [ ] Add request/response compression
 
 ### Monitoring
+
 - [ ] Add structured logging
 - [ ] Implement health checks
 - [ ] Add metrics collection

@@ -1,53 +1,49 @@
-import os
-from typing import Dict, Any
-import logging
+from app.services.embeddings import get_embeddings_async, cosine_similarity, get_openrouter_client
+import numpy as np
+from app.services.utils import chunk_text
+ 
 
-logger = logging.getLogger(__name__)
+async def generate_repo_chunks(files):
+    """Asynchronously split repo files into chunks and generate embeddings in a batch."""
+    text_chunks = []
+    for f in files:
+        for txt in chunk_text(f.content, chunk_size=200):
+            text_chunks.append(txt)
 
-async def generate_ai_response(repo: Dict[str, Any], message: str) -> str:
-    """Generate AI response for repository chat"""
-    
-    # Simple AI response logic (replace with actual AI integration)
-    message_lower = message.lower()
-    
-    if "main.py" in message_lower:
-        main_files = [f for f in repo['files'] if 'main.py' in f['path']]
-        if main_files:
-            response = f"I found main.py in your repository. It contains {len(main_files[0]['content'].split())} words of code. "
-            response += "This appears to be the main entry point of your application."
-        else:
-            response = "I don't see a main.py file in your repository."
-    
-    elif "functions" in message_lower or "function" in message_lower:
-        total_functions = 0
-        for file_info in repo['files']:
-            total_functions += file_info['content'].count('def ')
-        response = f"I found approximately {total_functions} functions across all Python files in your repository."
-    
-    elif "structure" in message_lower:
-        response = f"Your repository structure includes {len(repo['files'])} Python files:\n\n"
-        for file_info in repo['files'][:5]:  # Show first 5 files
-            response += f"- {file_info['path']}\n"
-        if len(repo['files']) > 5:
-            response += f"... and {len(repo['files']) - 5} more files"
-    
-    elif "dependencies" in message_lower or "requirements" in message_lower:
-        # Look for requirements.txt or setup.py
-        req_files = [f for f in repo['files'] if 'requirements' in f['path'].lower() or 'setup.py' in f['path']]
-        if req_files:
-            response = f"I found dependency files: {', '.join([f['path'] for f in req_files])}"
-        else:
-            response = "I don't see any requirements.txt or setup.py files in your repository."
-    
-    else:
-        response = f"I can help you understand your {repo['name']} repository. "
-        response += "Try asking about specific files, functions, the project structure, or dependencies."
-    
-    return response
+    if not text_chunks:
+        return []
 
-# TODO: Implement OpenAI integration
-async def generate_openai_response(context: str, question: str) -> str:
-    """Generate response using OpenAI API (to be implemented)"""
-    # This would use the OpenAI API to generate more sophisticated responses
-    # based on the repository context and user question
-    pass
+    # Embed the document chunks
+    embeddings = await get_embeddings_async(text_chunks)
+    
+    return [
+        {"content": content, "embedding": embedding}
+        for content, embedding in zip(text_chunks, embeddings)
+    ]
+
+async def ask_ai(question, repo_chunks):
+    """Find relevant chunks and query the AI model via OpenRouter."""
+    # Asynchronously get the embedding for the user's question
+    q_embeddings = await get_embeddings_async([question])
+    if not q_embeddings:
+        return "I could not process the question."
+    q_emb = q_embeddings[0]
+
+    sims = [cosine_similarity(q_emb, chunk["embedding"]) for chunk in repo_chunks]
+    
+    # Get top 3 chunks and reverse to have the most relevant one first in the context
+    top_indices = np.argsort(sims)[-3:]
+    top_chunks_content = [repo_chunks[i]["content"] for i in top_indices]
+    context = "\n\n".join(reversed(top_chunks_content))
+    
+    client = get_openrouter_client()
+    
+    # Use the OpenAI-compatible chat completions endpoint via OpenRouter
+    resp = await client.chat.completions.create(
+        model="google/gemini-flash-1.5", # The model name on OpenRouter
+        messages=[
+            {"role": "system", "content": "You are a helpful AI assistant analyzing Python code. Use the provided context to answer the user's question."},
+            {"role": "user", "content": f"Context:\n{context}\n\nQuestion:\n{question}"}
+        ]
+    )
+    return resp.choices[0].message.content
