@@ -15,28 +15,35 @@ async def chat_with_repository(request: ChatRequest):
         raise HTTPException(status_code=404, detail="Repository not found")
     
     repo = repositories[request.repo_id]
-    
+
     try:
-        # Generate AI response
-        response_message = await generate_ai_response(repo, request.message)
-        
-        # Get relevant files (simple approach - return files that contain keywords from the question)
-        relevant_files = []
-        question_words = request.message.lower().split()
-        
-        for file_info in repo['files']:
-            file_content_lower = file_info['content'].lower()
-            file_path_lower = file_info['path'].lower()
+        # 👇 Detect if user is asking for repo-wide summary
+        global_summary_keywords = ["summarize", "summary", "overview", "all files", "entire repo", "whole repository"]
+        is_global_summary = any(word in request.message.lower() for word in global_summary_keywords)
+
+        if is_global_summary:
+            # pass all files to AI
+            response_message = await generate_ai_response(repo, request.message, all_files=True)
+            relevant_files = [f["path"] for f in repo["files"]]
+        else:
+            # Generate AI response with embeddings
+            response_message = await generate_ai_response(repo, request.message)
             
-            # Check if question keywords appear in file content or path
-            for word in question_words:
-                if len(word) > 3 and (word in file_content_lower or word in file_path_lower):
-                    relevant_files.append(file_info['path'])
-                    break
-        
-        # Limit to top 3 relevant files
-        relevant_files = relevant_files[:3]
-        
+            # Keep only keyword-matched relevant files (max 3)
+            relevant_files = []
+            question_words = request.message.lower().split()
+            
+            for file_info in repo['files']:
+                file_content_lower = file_info['content'].lower()
+                file_path_lower = file_info['path'].lower()
+                
+                for word in question_words:
+                    if len(word) > 3 and (word in file_content_lower or word in file_path_lower):
+                        relevant_files.append(file_info['path'])
+                        break
+            
+            relevant_files = relevant_files[:3]
+
         return ChatResponse(
             message=response_message,
             relevant_files=relevant_files
