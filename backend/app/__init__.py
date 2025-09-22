@@ -1,1 +1,0 @@
-# CodeMind Lite Backend
