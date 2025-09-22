@@ -18,43 +18,49 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Grok-4 A
 ### Prerequisites
 
 - Python 3.8+
-- pip 
+- pip
 - OpenRouter API key (optional, for AI features)
 
 ### Installation
 
 1. **Navigate to backend directory:**
+
    ```bash
    cd backend
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Configure environment:**
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Edit `.env` and set your configuration:
+
    ```env
    OPENROUTER_API_KEY=your_openrouter_api_key_here    ###Grok-4 AI API KEY
    OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
    HOST=0.0.0.0
    PORT=10000
    DEBUG=True
-   CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+   CORS_ORIGINS=http://localhost:5175,http://127.0.0.1:5175
    ```
 
 4. **Start development server:**
+
    ```bash
    cd backend
    python -m app.main
    ```
-   
+
    Or using uvicorn directly:
+
    ```bash
    cd backend
    uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
@@ -65,11 +71,13 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Grok-4 A
 ## 🔑 OpenRouter API Setup
 
 1. **Get API Key:**
+
    - Go to [OpenRouter](https://openrouter.ai/)
    - Sign up for a free account
    - Get your API key from the dashboard
 
 2. **Free Grok-4 Model:**
+
    - The backend uses `x-ai/grok-4-fast:free` which is free on OpenRouter
    - No credit card required for basic usage
 
@@ -82,13 +90,13 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Grok-4 A
 
 ### Core Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check for deployment |
-| `POST` | `/upload` | Upload Python repository ZIP |
-| `POST` | `/chat` | Chat with uploaded repository |
-| `POST` | `/generate_docs` | Generate AI documentation |
-| `GET` | `/repositories` | List uploaded repositories |
+| Method | Endpoint         | Description                   |
+| ------ | ---------------- | ----------------------------- |
+| `GET`  | `/health`        | Health check for deployment   |
+| `POST` | `/upload`        | Upload Python repository ZIP  |
+| `POST` | `/chat`          | Chat with uploaded repository |
+| `POST` | `/generate_docs` | Generate AI documentation     |
+| `GET`  | `/repositories`  | List uploaded repositories    |
 
 ### Upload Repository
 
@@ -98,6 +106,7 @@ curl -X POST http://localhost:10000/upload \
 ```
 
 Response:
+
 ```json
 {
   "id": "repo_1",
@@ -119,6 +128,7 @@ curl -X POST http://localhost:10000/chat \
 ```
 
 Response:
+
 ```json
 {
   "message": "The main.py file serves as the entry point for your application...",
@@ -191,12 +201,14 @@ Visit [http://localhost:10000/docs](http://localhost:10000/docs) for interactive
 ### Common Issues
 
 1. **Port already in use**
+
    ```bash
    # Kill process on port 10000
    lsof -ti:10000 | xargs kill -9
    ```
 
 2. **Module import errors**
+
    ```bash
    # Ensure you're in the backend directory
    cd backend
@@ -204,6 +216,7 @@ Visit [http://localhost:10000/docs](http://localhost:10000/docs) for interactive
    ```
 
 3. **File upload fails**
+
    - Check file size (max 50MB)
    - Ensure file is a valid ZIP
    - Verify ZIP contains Python files
@@ -217,14 +230,14 @@ Visit [http://localhost:10000/docs](http://localhost:10000/docs) for interactive
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENROUTER_API_KEY` | OpenRouter API key for Grok-4 | None |
-| `OPENROUTER_BASE_URL` | OpenRouter API base URL | `https://openrouter.ai/api/v1` |
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `10000` |
-| `DEBUG` | Debug mode | `True` |
-| `CORS_ORIGINS` | Allowed CORS origins | `http://localhost:5173` |
+| Variable              | Description                   | Default                        |
+| --------------------- | ----------------------------- | ------------------------------ |
+| `OPENROUTER_API_KEY`  | OpenRouter API key for Grok-4 | None                           |
+| `OPENROUTER_BASE_URL` | OpenRouter API base URL       | `https://openrouter.ai/api/v1` |
+| `HOST`                | Server host                   | `0.0.0.0`                      |
+| `PORT`                | Server port                   | `10000`                        |
+| `DEBUG`               | Debug mode                    | `True`                         |
+| `CORS_ORIGINS`        | Allowed CORS origins          | `http://localhost:5175`        |
 
 ### File Upload Limits
 
