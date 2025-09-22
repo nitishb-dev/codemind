@@ -1,6 +1,6 @@
 # CodeMind Lite - Backend
 
-FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endpoints for repository upload, documentation generation, and intelligent code chat powered by the OpenRouter API.
+FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endpoints for repository upload, documentation generation, and intelligent code chat powered by the Google Gemini API.
 
 ## ✨ Features
 
@@ -36,7 +36,7 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Provides endp
    Edit `.env` and set your configuration:
 
    ```env
-   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
    HOST=0.0.0.0
    PORT=10000
    DEBUG=False

@@ -27,3 +27,9 @@ class DocsRequest(BaseModel):
 class ChatRequest(BaseModel):
     repo_id: str
     message: str
+
+class ChatResponse(BaseModel):
+    message: str
+
+class DocsResponse(BaseModel):
+    documentation: str
