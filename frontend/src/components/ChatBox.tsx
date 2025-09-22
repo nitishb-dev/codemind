@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Code, Clock } from 'lucide-react';
+import { Send, Bot, User, Code } from 'lucide-react';
 import { ApiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import type { ChatMessage, Repository } from '../types';
@@ -82,10 +82,6 @@ What would you like to know?`,
             <h3 className="font-semibold text-lg">{repository.name}</h3>
             <div className="flex items-center space-x-4 text-sm text-purple-100">
               <span>{repository.fileCount} files</span>
-              <span className="flex items-center space-x-1">
-                <Clock className="w-4 h-4" />
-                <span>Uploaded {new Date(repository.uploadedAt).toLocaleDateString()}</span>
-              </span>
             </div>
           </div>
         </div>

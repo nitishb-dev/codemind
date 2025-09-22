@@ -33,7 +33,10 @@ function App() {
     // backend response, so we cast it to `any` to access the correct properties
     // and then create a correctly-shaped object for our frontend state.
     const backendRepo = repo as any;
-    const formattedRepo: Repository = { ...backendRepo, uploadedAt: backendRepo.uploaded_at, fileCount: backendRepo.file_count };
+    const formattedRepo: Repository = { 
+      ...backendRepo, 
+      uploadedAt: backendRepo.uploaded_at,       fileCount: backendRepo.file_count 
+    };
     setRepository(formattedRepo);
     setCurrentState('chat');
   };
