@@ -27,7 +27,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
       'application/x-zip-compressed': ['.zip'],
     },
     multiple: false,
-    maxSize: 50 * 1024 * 1024, // 50MB limit
+    maxSize: 10 * 1024 * 1024, // 10MB limit
   });
 
   const formatFileSize = (bytes: number): string => {
@@ -98,7 +98,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
                 : 'Drag and drop a ZIP file here, or click to select'}
             </p>
             <p className="text-sm text-gray-500">
-              Maximum file size: 50MB
+              Maximum file size: 10MB
             </p>
           </div>
         ) : (
@@ -149,7 +149,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
           </li>
           <li className="flex items-start">
             <span className="mr-2">•</span>
-            Maximum file size: 50MB
+            Maximum file size: 10MB
           </li>
           <li className="flex items-start">
             <span className="mr-2">•</span>

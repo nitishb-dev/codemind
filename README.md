@@ -241,7 +241,7 @@ Visit [http://localhost:10000/docs](http://localhost:10000/docs) for interactive
 
 ### File Upload Limits
 
-- **Maximum file size**: 50MB
+- **Maximum file size**: 10MB
 - **Supported formats**: ZIP files only
 - **File types processed**: Python (.py) files
 - **Storage**: Temporary filesystem storage
