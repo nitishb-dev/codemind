@@ -5,17 +5,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class GeminiService:
+class AIService:
     def __init__(self):
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-        self.model = "google/gemini-flash-1.5"  # Free Gemini model
+        self.model = "x-ai/grok-4-fast:free"  # Free model from OpenRouter
         
         if not self.api_key:
             logger.warning("OPENROUTER_API_KEY not found. AI features will use fallback responses.")
     
     async def generate_response(self, context: str, question: str) -> str:
-        """Generate AI response using Gemini via OpenRouter"""
+        """Generate AI response using a model from OpenRouter"""
         
         if not self.api_key:
             return self._fallback_response(context, question)
@@ -64,7 +64,7 @@ Please provide a helpful, accurate response about the code. If you can't find sp
                 return self._fallback_response(context, question)
                 
         except Exception as e:
-            logger.error(f"Error calling Gemini API: {e}")
+            logger.error(f"Error calling AI API: {e}")
             return self._fallback_response(context, question)
     
     def _fallback_response(self, context: str, question: str) -> str:
@@ -99,7 +99,7 @@ Please provide a helpful, accurate response about the code. If you can't find sp
             return f"I can help you understand your repository with {file_count} Python files. Try asking about specific files, functions, classes, or the overall structure. Note: AI features are limited without API configuration."
 
 # Global service instance
-gemini_service = GeminiService()
+ai_service = AIService()
 
 async def generate_ai_response(repo: Dict[str, Any], message: str) -> str:
     """Generate AI response for repository chat"""
@@ -112,7 +112,7 @@ async def generate_ai_response(repo: Dict[str, Any], message: str) -> str:
         context += f"File: {file_info['path']}\n"
         context += f"Content preview:\n{file_info['content'][:1000]}...\n\n"
     
-    return await gemini_service.generate_response(context, message)
+    return await ai_service.generate_response(context, message)
 
 async def generate_documentation(repo: Dict[str, Any]) -> str:
     """Generate documentation for the repository"""
@@ -123,4 +123,4 @@ async def generate_documentation(repo: Dict[str, Any]) -> str:
     
     question = "Generate comprehensive documentation for this Python repository including overview, file descriptions, and usage instructions."
     
-    return await gemini_service.generate_response(context, question)
+    return await ai_service.generate_response(context, question)

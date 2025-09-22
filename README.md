@@ -1,11 +1,11 @@
 # CodeMind Lite - Backend
 
-FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Gemini AI via OpenRouter for intelligent code analysis and chat functionality.
+FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Grok-4 AI via OpenRouter for intelligent code analysis and chat functionality.
 
 ## ✨ Features
 
 - **Repository Upload**: Process Python repository ZIP files
-- **AI Chat**: Natural language queries about uploaded code using Gemini
+- **AI Chat**: Natural language queries about uploaded code using Grok-4
 - **Documentation Generation**: AI-powered README and docstring generation
 - **Code Analysis**: Extract and analyze Python files
 - **Health Monitoring**: Health check endpoint for deployment
@@ -16,7 +16,7 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Gemini A
 ### Prerequisites
 
 - Python 3.8+
-- pip or poetry
+- pip 
 - OpenRouter API key (optional, for AI features)
 
 ### Installation
@@ -38,7 +38,7 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Gemini A
    
    Edit `.env` and set your configuration:
    ```env
-   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here    ###Grok-4 AI API KEY
    OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
    HOST=0.0.0.0
    PORT=10000
@@ -67,8 +67,8 @@ FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Gemini A
    - Sign up for a free account
    - Get your API key from the dashboard
 
-2. **Free Gemini Model:**
-   - The backend uses `google/gemini-flash-1.5` which is free on OpenRouter
+2. **Free Grok-4 Model:**
+   - The backend uses `x-ai/grok-4-fast:free` which is free on OpenRouter
    - No credit card required for basic usage
 
 3. **Set Environment Variable:**
@@ -126,11 +126,11 @@ Response:
 
 ## 🧠 AI Integration
 
-### Gemini via OpenRouter
+### Grok-4 via OpenRouter
 
-The backend uses Google's Gemini Flash 1.5 model through OpenRouter:
+The backend uses Google's Grok-4 model through OpenRouter:
 
-- **Free Usage**: No cost for basic usage
+- **Free Usage**: No cost for usage
 - **Fast Responses**: Optimized for quick code analysis
 - **Fallback Mode**: Works without API key with basic responses
 
@@ -153,7 +153,7 @@ backend/
 │   │   ├── chat.py          # Chat with repository
 │   │   └── health.py        # Health check endpoint
 │   ├── services/            # Business logic services
-│   │   ├── ai_service.py    # Gemini AI integration
+│   │   ├── ai_service.py    # Grok-4 AI integration
 │   │   └── utils.py         # Utility functions
 │   └── models/              # Pydantic data models
 │       └── schemas.py       # Request/response schemas
@@ -217,7 +217,7 @@ Visit [http://localhost:10000/docs](http://localhost:10000/docs) for interactive
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENROUTER_API_KEY` | OpenRouter API key for Gemini | None |
+| `OPENROUTER_API_KEY` | OpenRouter API key for Grok-4 | None |
 | `OPENROUTER_BASE_URL` | OpenRouter API base URL | `https://openrouter.ai/api/v1` |
 | `HOST` | Server host | `0.0.0.0` |
 | `PORT` | Server port | `10000` |
