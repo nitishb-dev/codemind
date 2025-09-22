@@ -248,4 +248,4 @@ Visit [http://localhost:10000/docs](http://localhost:10000/docs) for interactive
 
 ## 📄 License
 
-This project is part of CodeMind Lite - an educational tool for learning AI-powered code analysis.
+This project is part of an educational tool developed for learning AI-powered code analysis.
