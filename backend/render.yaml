@@ -6,7 +6,12 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port 10000
     envVars:
-      - key: OPENAI_API_KEY
-        sync: false
+      - key: OPENROUTER_API_KEY # Corrected: Matches the key used in your code
+        sync: false # Set this secret value in the Render dashboard
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: CORS_ORIGINS # Added: Essential for frontend communication
+        # IMPORTANT: Replace this with your deployed frontend's URL
+        value: https://your-frontend-app.onrender.com
       - key: PYTHON_VERSION
         value: 3.11.0

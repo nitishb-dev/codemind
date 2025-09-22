@@ -2,6 +2,8 @@
 
 FastAPI backend for the CodeMind Lite AI repository analysis tool. Uses Grok-4 AI via OpenRouter for intelligent code analysis and chat functionality.
 
+![alt text](codemindlanding.png)
+
 ## ✨ Features
 
 - **Repository Upload**: Process Python repository ZIP files
