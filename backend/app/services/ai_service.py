@@ -1,8 +1,9 @@
 import os
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
 
+from app.services.embeddings import EmbeddingService
 logger = logging.getLogger(__name__)
 
 class AIService:
@@ -87,21 +88,64 @@ Please provide a helpful, accurate response about the code. If you can't find sp
 # Global service instance
 ai_service = AIService()
 
-async def generate_ai_response(repo: Dict[str, Any], message: str) -> str:
-    """Generate AI response for repository chat"""
-    
-    # Build context from all repository files
+embedding_service = EmbeddingService()
+
+async def generate_ai_response(repo: Dict[str, Any], message: str, all_files: bool = False) -> Dict[str, Any]:
+    """
+    Generate AI response for repository chat.
+    If all_files is True, uses the entire repo as context.
+    Otherwise, it uses embeddings to find relevant chunks.
+    """
     context = f"Repository: {repo['name']}\n"
-    context += f"Total files: {repo['file_count']}\n\n"
+    relevant_file_paths = set()
     
-    for file_info in repo['files']:  # 👈 Include ALL files
-        context += f"File: {file_info['path']}\n"
-        context += f"Content:\n{file_info['content']}\n\n"  # 👈 Full content
+    # List .py files in the repo
+    py_files = [file_info['path'] for file_info in repo['files'] if file_info['path'].endswith('.py')]
+
+    if all_files or not ai_service.api_key:
+        # Build context from all repository files for summary or if in fallback mode
+        context += f"Total files: {repo['file_count']}\n\n"
+        
+        for file_info in repo['files']:
+            context += f"File: {file_info['path']}\n"
+            context += f"Content:\n{file_info['content']}\n\n"
+            relevant_file_paths.add(file_info['path'])
+    else:
+        # Use embeddings to find relevant context for specific questions
+        try:
+            chunks = await embedding_service.chunk_repository(repo['files'])
+            relevant_chunks = await embedding_service.find_relevant_chunks(chunks, message, top_k=5)
+            
+            if not relevant_chunks:
+                # Fallback to all files if no relevant chunks found
+                logger.info("No relevant chunks found, falling back to full context.")
+                return await generate_ai_response(repo, message, all_files=True)
+
+            context += "Here are the most relevant code snippets based on your question:\n\n"
+            
+            for chunk in relevant_chunks:
+                context += f"File: {chunk['file']} (lines {chunk['start_line']}-{chunk['end_line']})\n"
+                context += f"Content:\n{chunk['content']}\n\n"
+                relevant_file_paths.add(chunk['file'])
+        except Exception as e:
+            logger.error(f"Embedding-based search failed: {e}. Falling back to full context.")
+            # Fallback to all files on any embedding error
+            return await generate_ai_response(repo, message, all_files=True)
     
-    return await ai_service.generate_response(context, message)
+    response_message = await ai_service.generate_response(context, message)
+
+    if py_files:
+        # Add list of files at the end of the message
+        response_message += f"\n\nHere are some of the Python files in this repository: {', '.join(py_files)}"
+
+    return {
+        "message": response_message,
+        "relevant_files": list(relevant_file_paths)
+    }
 
 async def generate_documentation(repo: Dict[str, Any]) -> str:
     """Generate documentation for the repository"""
+
     
     context = f"Repository: {repo['name']}\n"
     for file_info in repo['files']:
